@@ -78,13 +78,13 @@ class ExpertChoiceMoE(nn.Module):
 
     def __init__(self, config, mlp):
         super().__init__()
-        assert config.moe_num_experts > 0
-        self.n_experts = config.moe_num_experts
+        # assert config.moe_num_experts > 0
+        self.n_experts = 8  # config.moe_num_experts
         self.experts = nn.ModuleList(
             [mlp(config=config) for _ in range(config.moe_num_experts)]
         )
         self.router = nn.Linear(config.n_embd, config.moe_num_experts, bias=False)
-        self.capacity_factor = config.capacity_factor
+        self.capacity_factor = 2  # config.capacity_factor
         self.softmax_order = config.moe_softmax_order
         self.top_k = int(
             self.capacity_factor

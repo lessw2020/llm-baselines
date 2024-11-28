@@ -16,9 +16,9 @@ import tiktoken
 import torch
 import torch.nn as nn
 
-from aux_losses import entropy_reg, load_balancing_loss, router_z_loss
+from models.aux_losses import entropy_reg, load_balancing_loss, router_z_loss
 
-from moe import ExpertChoiceMoE, MoE
+from models.moe import ExpertChoiceMoE, MoE
 from torch.nn import functional as F
 
 
@@ -130,15 +130,17 @@ class Block(nn.Module):
         self.ln_1 = LayerNorm(config.n_embd, bias=config.bias)
         self.attn = CausalSelfAttention(config)
         self.ln_2 = LayerNorm(config.n_embd, bias=config.bias)
-        if config.moe:
+        """if config.moe:
             if config.moe_routing == "standard_gating":
                 self.mlp = MoE(config, MLP)
             elif config.moe_routing == "expert_choice":
-                self.mlp = ExpertChoiceMoE(config, MLP)
-            else:
+        """
+        self.mlp = ExpertChoiceMoE(config, MLP)
+        """    else:
                 raise ValueError(f"Unknown routing: {config.routing}")
         else:
             self.mlp = MLP(config)
+        """
 
     def forward(self, x, *args, **kwargs):
         x = x + self.attn(self.ln_1(x, *args, **kwargs))
