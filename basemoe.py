@@ -44,4 +44,26 @@ class SimpleExpertChoiceMoE(nn.Module):
 
         # [batch_size * sequence_length, num_experts]
         router_output = self.router(inputs_squashed)
-        # [batch_size * sequence_length
+        # toggle softmax order
+        if self.softmax_order == "softmax_topk":
+            all_probs = F.softmax(router_output, dim=-1, dtype=torch.float32)
+            # [num_experts, top_k]
+            # topk over tokens
+            weights, selected_tokens = torch.topk(all_probs.T, top_k)
+        else:
+            # topk, then softmax
+            weights, selected_tokens = torch.topk(router_output.T, top_k)
+            weights = F.softmax(weights, dim=-1, dtype=torch.float32)
+
+        # loop version
+        results = torch.zeros_like(inputs_squashed)
+        for i, expert in enumerate(self.experts):
+            # [top_k]
+            batch_index = selected_tokens[i]
+            output, _ = expert(inputs_squashed[batch_index])
+            results[batch_index] += weights[i, :, None] * output
+
+        return results.view_as(inputs), {
+            "router_logits": router_output,
+            "selected_experts": selected_tokens,
+        }
