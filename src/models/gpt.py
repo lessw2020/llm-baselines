@@ -104,13 +104,14 @@ class CausalSelfAttention(nn.Module):
 class MLP(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.dim_exp_factor = int(config.mlp_dim_exp_factor * 4)
+        self.mlp_dim_exp_factor = 1.0
+        self.dim_exp_factor = int(self.mlp_dim_exp_factor * 4)
 
         self.c_fc = nn.Linear(
-            config.n_embd, self.dim_exp_factor * config.n_embd, bias=config.bias
+            config.n_embd, self.dim_exp_factor * config.n_embd, bias=False
         )
         self.c_proj = nn.Linear(
-            self.dim_exp_factor * config.n_embd, config.n_embd, bias=config.bias
+            self.dim_exp_factor * config.n_embd, config.n_embd, bias=False
         )
         self.dropout = nn.Dropout(config.dropout)
         self.activation = nn.GELU()
@@ -187,7 +188,7 @@ class GPTBase(nn.Module):
             if pn.endswith("router.weight"):
                 # special scaled init to moe router?
                 with torch.no_grad():
-                    dim = 1 if config.moe_routing == "standard_gating" else 0
+                    dim = 0  # 1 if config.moe_routing == "standard_gating" else 0
                     std = p.std()
                     p.div_(p.sum(dim=dim, keepdim=True))
                     p.mul_(std / p.std())

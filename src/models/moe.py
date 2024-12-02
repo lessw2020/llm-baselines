@@ -79,25 +79,27 @@ class ExpertChoiceMoE(nn.Module):
     def __init__(self, config, mlp):
         super().__init__()
         # assert config.moe_num_experts > 0
-        self.n_experts = 8  # config.moe_num_experts
+        self.num_experts = 8  # config.moe_num_experts
         self.experts = nn.ModuleList(
-            [mlp(config=config) for _ in range(config.moe_num_experts)]
+            [mlp(config=config) for _ in range(self.num_experts)]
         )
-        self.router = nn.Linear(config.n_embd, config.moe_num_experts, bias=False)
+        self.router = nn.Linear(config.n_embd, self.num_experts, bias=False)
         self.capacity_factor = 2  # config.capacity_factor
-        self.softmax_order = config.moe_softmax_order
+        self.softmax_order = "topk_softmax"
         self.top_k = int(
             self.capacity_factor
             * config.batch_size
             * config.sequence_length
-            / config.moe_num_experts
+            / self.num_experts
         )
 
     def forward(self, inputs: torch.Tensor):
         # [batch_size * sequence_length, n_embd]
         inputs_squashed = inputs.view(-1, inputs.shape[-1])
         num_tokens = inputs_squashed.shape[0]
-        top_k = min(self.top_k, int(self.capacity_factor * num_tokens / self.n_experts))
+        top_k = min(
+            self.top_k, int(self.capacity_factor * num_tokens / self.num_experts)
+        )
         # [batch_size * sequence_length, num_experts]
         router_logits = self.router(inputs_squashed)
 
